@@ -42,6 +42,9 @@ d_cutoff = mean_d + 2*std_d
 low_sb = low_sb[low_sb['SB_D25_LEDA'] < sb_cutoff]
 low_sb = low_sb[low_sb['D25_LEDA'] < d_cutoff]
 
+print(low_sb)
 
-plt.scatter(low_sb['SB_D25_LEDA'], low_sb['D25_LEDA'])
-plt.show()
+plt.scatter(low_sb['SB_D25_LEDA'], low_sb['D25_LEDA'], alpha=0.3)
+plt.ylabel('Major axis diameter at the $25 \; mag \; arcsec^{-2}$ isophote (arcmin)')
+plt.xlabel('Mean Surface Brightness (B band, $mag \; arcsec^{-2}$)')
+plt.clf()
