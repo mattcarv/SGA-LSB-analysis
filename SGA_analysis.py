@@ -45,9 +45,18 @@ d_cutoff = mean_d + 2*std_d
 low_sb = low_sb[low_sb['SB_D25_LEDA'] < sb_cutoff]
 low_sb = low_sb[low_sb['D25_LEDA'] < d_cutoff]
 
-# print(low_sb)
+low_sb = low_sb.sample(frac=0.7, replace=True, random_state=1)
 
 plt.scatter(low_sb['SB_D25_LEDA'], low_sb['D25_LEDA'], alpha=0.3)
 plt.ylabel('Major axis diameter at the $25 \; mag \; arcsec^{-2}$ isophote (arcmin)')
 plt.xlabel('Mean Surface Brightness (B band, $mag \; arcsec^{-2}$)')
-plt.show()
+plt.clf()
+
+# General correlation plot to understand the possible trends in the dataset
+import seaborn as sns
+
+corr = low_sb.corr()
+mask = np.triu(np.ones_like(corr, dtype=bool))
+sns.heatmap(corr, mask=mask, cmap='RdBu', center=0,
+            square=True, linewidths=.5, cbar_kws={"shrink": .5})
+
