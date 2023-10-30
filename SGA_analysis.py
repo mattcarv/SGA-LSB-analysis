@@ -53,10 +53,11 @@ plt.xlabel('Mean Surface Brightness (B band, $mag \; arcsec^{-2}$)')
 plt.clf()
 
 # General correlation plot to understand the possible trends in the dataset
-import seaborn as sns
+# import seaborn as sns
 
-corr = low_sb.corr()
-mask = np.triu(np.ones_like(corr, dtype=bool))
-sns.heatmap(corr, mask=mask, cmap='RdBu', center=0,
-            square=True, linewidths=.5, cbar_kws={"shrink": .5})
+# corr = low_sb.corr()
+# mask = np.triu(np.ones_like(corr, dtype=bool))
+# sns.heatmap(corr, mask=mask, cmap='RdBu', center=0,
+#             square=True, linewidths=.5, cbar_kws={"shrink": .5})
 
+# Converting from nanomaggies to 
