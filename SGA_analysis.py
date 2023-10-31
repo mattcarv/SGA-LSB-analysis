@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from astropy.table import Table
+from astropy.cosmology import FlatLambdaCDM
+cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 
 # Read the data from the FITS file
 df = pd.read_csv('/home/mdocarm/Downloads/SGA_xmatch.csv')
@@ -60,4 +61,20 @@ plt.clf()
 # sns.heatmap(corr, mask=mask, cmap='RdBu', center=0,
 #             square=True, linewidths=.5, cbar_kws={"shrink": .5})
 
-# Converting from nanomaggies to 
+# Calculating luminosities
+
+def LumCalc(f, z):
+    
+    d = cosmo.luminosity_distance(z)*(10^(6))
+    f = f > 0
+    sol_m = 3.24
+    
+    m = 22.5 - (2.5*np.log10(f))
+    abs_m = -5*np.log10(d)+5+m
+    
+    l = 10^((-0.4)*(abs_m-sol_m))
+    
+    return l
+    
+#lum = LumCalc(low_sb['FLUX_W1'], low_sb['Z_LEDA'])
+print(np.log10(cosmo.luminosity_distance(0.073)*(1000000)))
