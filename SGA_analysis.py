@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from astropy.cosmology import FlatLambdaCDM
+from scipy.stats import skewnorm
+from scipy.optimize import curve_fit
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 
 # Read the data from the FITS file
@@ -61,59 +63,74 @@ plt.ylabel(
 plt.xlabel('Mean Surface Brightness (B band, $mag \; arcsec^{-2}$)')
 plt.clf()
 
-# General correlation plot to understand the possible trends in the dataset
-# import seaborn as sns
-
-# corr = low_sb.corr()
-# mask = np.triu(np.ones_like(corr, dtype=bool))
-# sns.heatmap(corr, mask=mask, cmap='RdBu', center=0,
-#             square=True, linewidths=.5, cbar_kws={"shrink": .5})
-
 # Assigning a distance column
-
 d = cosmo.luminosity_distance(low_sb['Z_LEDA'])
-print(d)
+dist = np.array(d)
+low_sb['DIST'] = dist
+
+# Calculating luminosity
+
+def MagCalc (f, d):
+    
+    d = d*(10**6)
+    
+    m = 22.5 - (2.5*np.log10(f))
+    abs_m = (-5*np.log10(d))+5+m
+    
+    return abs_m
+
+mag1 = MagCalc(low_sb['FLUX_W1'], low_sb['DIST'])
+mag2 = MagCalc(low_sb['FLUX_W2'], low_sb['DIST'])
+mag3 = MagCalc(low_sb['FLUX_W3'], low_sb['DIST'])
+mag4 = MagCalc(low_sb['FLUX_W4'], low_sb['DIST'])
 
 
+def LumCalc (mag, filt):
+    
+    
+    L = 10**(-0.4*(mag-filt))
+    
+    return L
 
-# # %%
-# z = [0.01, 0.02, 0.03, 0.04, 0.05]
-# flux = [-100, 101, 102, 103, 104]
-# # %%
-# print(low_sb['FLUX_W1'])
-# # %%
+low_sb['LUM_W1'] = LumCalc(mag1, 3.24)
+low_sb['LUM_W2'] = LumCalc(mag2, 3.27)
+low_sb['LUM_W3'] = LumCalc(mag3, 3.23)
+low_sb['LUM_W4'] = LumCalc(mag4, 3.25)
 
-
-# def LumCalc(f, z):
-#     L = []
-
-#     for i in range(len(z)):
-#         print('!')
-#         cosm = (cosmo.luminosity_distance(z[i]).value)
-#         d = cosm*(10**6)
-#         # = f[i] > 0
-#         if f> 0:
-#             print('1')
-#             sol_m = 3.24
-#             m = 22.5 - (2.5*np.log10(f))
-#             abs_m = -5*np.log10(d)+5+m
-#             l = 10**((-0.4)*(abs_m-sol_m))
-#         else:
-#             l = 0
-#             print('2')
-#         L.append(l)
-
-#     return L
+# Using a Mass-to-Light ratio to get Stellar Mass
+stellar_mass = np.log10(low_sb['LUM_W1'] * 0.6)
 
 
-# #lum = LumCalc(flux, z, L)
-# lum = LumCalc(low_sb['FLUX_W1'], low_sb['Z_LEDA'])
-# print(lum)
-# # %%
-# Fl = low_sb['FLUX_W1']
-# #print(Fl)
-# #print(low_sb['FLUX_W1'])
-# #print(low_sb['Z_LEDA'].shape)
+# Plotting the mass distribution of this subsample
+hist, bins, patches = plt.hist(stellar_mass, bins=1000, density=True)
 
-# for i in range(2,25):
-#     print(Fl[i])
+def skewed_gaussian(x, a, mean, std, skew):
+    
+    return a * skewnorm.pdf(x, a=skew, loc=mean, scale=std)
+
+mean_guess = np.mean(stellar_mass)
+std_guess = np.std(stellar_mass)
+skew_guess = 0
+
+amp_guess = np.max(hist)
+initial_guess = [amp_guess, mean_guess, std_guess, skew_guess]
+
+try:
+    popt, _ = curve_fit(skewed_gaussian, bins[:-1], hist, p0=initial_guess, gtol=1e-5)
+except RuntimeError as e:
+    print("Fitting failed:", e)
+    popt = initial_guess
+    
+    
+x_fit = np.linspace(min(bins), max(bins), 1000)
+y_fit = skewed_gaussian(x_fit, *popt)
+
+
+plt.hist(stellar_mass, bins=1000, density=True)
+plt.plot(x_fit, y_fit, 'r-')
+
+plt.xlabel('log Stellar Mass ($M_{\odot}$)')
+plt.ylabel('Probability Density')
+plt.clf()
+
+print(mean_guess)
