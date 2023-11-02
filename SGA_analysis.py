@@ -99,7 +99,15 @@ low_sb['LUM_W3'] = LumCalc(mag3, 3.23)
 low_sb['LUM_W4'] = LumCalc(mag4, 3.25)
 
 # Using a Mass-to-Light ratio to get Stellar Mass
+
 stellar_mass = np.log10(low_sb['LUM_W1'] * 0.6)
+
+# Scaling W3 and W4 with the W1 light
+
+low_sb['LUM_W3'] = low_sb['LUM_W3']-(0.158*low_sb['LUM_W1'])
+low_sb['LUM_W4'] = low_sb['LUM_W4']-(0.059*low_sb['LUM_W1'])
+low_sb = low_sb[low_sb.LUM_W3 > 0]
+low_sb = low_sb[low_sb.LUM_W4 > 0]
 
 
 # Plotting the mass distribution of this subsample
@@ -163,7 +171,6 @@ plt.ylabel('SFR from the WISE3 band')
 plt.clf()
 
 
-
 # Testing a linear regression to the data
 linregress = stats.linregress(np.log10(sfr4), np.log10(sfr3))
 regression_line = linregress.slope * np.log10(sfr4) + linregress.intercept
@@ -186,11 +193,12 @@ ax2.scatter(np.log10(sfr4), residuals, color='green', alpha=0.5)
 ax2.axhline(y=0, color='k', linestyle='--')
 ax2.set_xlabel('SFR from the WISE4 band')
 ax2.set_ylabel('Residuals')
-plt.show()
+plt.clf()
 
 # Statistical tests for the correlation between the two SFR methods
 r, p_value = stats.pearsonr(np.log10(sfr4), np.log10(sfr3))
 r_squared = linregress.rvalue**2
+
 
 print(f"Pearson's correlation coefficient (r): {r}")
 print(f"Fitted Regression Line (y = {linregress.slope:.2f}x + {linregress.intercept:.2f})")
