@@ -56,7 +56,7 @@ d_cutoff = mean_d + 2*std_d
 low_sb = low_sb[low_sb['SB_D25_LEDA'] < sb_cutoff]
 low_sb = low_sb[low_sb['D25_LEDA'] < d_cutoff]
 
-low_sb = low_sb.sample(frac=0.7, replace=True, random_state=1)
+low_sb = low_sb.sample(frac=0.5, replace=True, random_state=1)
 
 plt.scatter(low_sb['SB_D25_LEDA'], low_sb['D25_LEDA'], alpha=0.3)
 plt.ylabel(
@@ -163,24 +163,35 @@ plt.ylabel('SFR from the WISE3 band')
 plt.clf()
 
 
-# Pearson's correlation coefficient to test linearity (close to -1 or 1 = linear)
-
-r, p_value = stats.pearsonr(np.log10(sfr4), np.log10(sfr3))
-# print(f"Pearson's correlation coefficient (r): {r}")
 
 # Testing a linear regression to the data
+linregress = stats.linregress(np.log10(sfr4), np.log10(sfr3))
+regression_line = linregress.slope * np.log10(sfr4) + linregress.intercept
+residuals = np.log10(sfr3) - (linregress.slope * np.log10(sfr4) + linregress.intercept)
 
-lingress = stats.linregress(np.log10(sfr4), np.log10(sfr3))
-regression_line = lingress.slope * np.log10(sfr4) + lingress.intercept
 
-plt.plot(x, y ,'--', c='k', label='1 to 1')
-plt.scatter(np.log10(sfr4), np.log10(sfr3), alpha=0.5)
-plt.plot(np.log10(sfr4), regression_line, c='r', label='Regression Line', 
-         alpha=0.8)
+fig, (ax1, ax2) = plt.subplots(2, 1, gridspec_kw={'height_ratios': [3, 1]}, sharex=True)
+
+ax1.plot(x, y ,'--', c='k', label='One to one fit')
+ax1.scatter(np.log10(sfr4), np.log10(sfr3), alpha=0.5)
+ax1.plot(np.log10(sfr4), regression_line, linestyle='dashdot', c='r', 
+         label=f'Linear Regression (y = {linregress.slope:.4f}x + {linregress.intercept:.4f})'
+         , alpha=0.8)
 plt.xlim(-3, 4)
 plt.ylim(-3, 4)
-plt.xlabel('SFR from the WISE4 band')
-plt.ylabel('SFR from the WISE3 band')
-plt.legend()
-plt.clf()
+ax1.legend()
+ax1.set_ylabel('SFR from the WISE3 band')
 
+ax2.scatter(np.log10(sfr4), residuals, color='green', alpha=0.5)
+ax2.axhline(y=0, color='k', linestyle='--')
+ax2.set_xlabel('SFR from the WISE4 band')
+ax2.set_ylabel('Residuals')
+plt.show()
+
+# Statistical tests for the correlation between the two SFR methods
+r, p_value = stats.pearsonr(np.log10(sfr4), np.log10(sfr3))
+r_squared = linregress.rvalue**2
+
+print(f"Pearson's correlation coefficient (r): {r}")
+print(f"Fitted Regression Line (y = {linregress.slope:.2f}x + {linregress.intercept:.2f})")
+print(f"R-squared for Fitted Regression Line: {r_squared:.2f}")
