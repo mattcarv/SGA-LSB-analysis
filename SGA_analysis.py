@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from astropy.cosmology import FlatLambdaCDM
+from scipy import stats
 from scipy.stats import skewnorm
 from scipy.optimize import curve_fit
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
@@ -133,4 +134,53 @@ plt.xlabel('log Stellar Mass ($M_{\odot}$)')
 plt.ylabel('Probability Density')
 plt.clf()
 
-print(mean_guess)
+# Calculating the SFR based on the W3 and W4 bands
+def SFRCalcW3 (lum):
+    
+    SFR = 10**((0.889*np.log10(lum))-7.76)
+    
+    return SFR
+
+sfr3 = SFRCalcW3(low_sb['LUM_W3'])
+
+def SFRCalcW4 (lum):
+    
+    SFR = 10**((0.915*np.log10(lum))-8.01)
+    
+    return SFR
+
+sfr4 = SFRCalcW4(low_sb['LUM_W4'])
+
+x = np.linspace(-5, 4, 100)
+y = x
+
+plt.plot(x, y ,'--', c='k')
+plt.scatter(np.log10(sfr4), np.log10(sfr3), alpha=0.5)
+plt.xlim(-3, 4)
+plt.ylim(-3, 4)
+plt.xlabel('SFR from the WISE4 band')
+plt.ylabel('SFR from the WISE3 band')
+plt.clf()
+
+
+# Pearson's correlation coefficient to test linearity (close to -1 or 1 = linear)
+
+r, p_value = stats.pearsonr(np.log10(sfr4), np.log10(sfr3))
+# print(f"Pearson's correlation coefficient (r): {r}")
+
+# Testing a linear regression to the data
+
+lingress = stats.linregress(np.log10(sfr4), np.log10(sfr3))
+regression_line = lingress.slope * np.log10(sfr4) + lingress.intercept
+
+plt.plot(x, y ,'--', c='k', label='1 to 1')
+plt.scatter(np.log10(sfr4), np.log10(sfr3), alpha=0.5)
+plt.plot(np.log10(sfr4), regression_line, c='r', label='Regression Line', 
+         alpha=0.8)
+plt.xlim(-3, 4)
+plt.ylim(-3, 4)
+plt.xlabel('SFR from the WISE4 band')
+plt.ylabel('SFR from the WISE3 band')
+plt.legend()
+plt.clf()
+
