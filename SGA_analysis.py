@@ -7,8 +7,12 @@ from scipy.stats import skewnorm
 from scipy.optimize import curve_fit
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 
+#%% 
+# Selection criteria from the original SGA dataset
+
 # Read the data from the FITS file
 df = pd.read_csv('/home/mdocarm/Downloads/subsec_SGA.csv')
+df = df[df.Z_LEDA < 0.1]
 # df = df[['SGA_ID_1', 'GALAXY', 'RA_LEDA', 'DEC_LEDA', 'MORPHTYPE', 'PA_LEDA',
 #          'D25_LEDA', 'BA_LEDA', 'Z_LEDA', 'SB_D25_LEDA', 'FLUX_G', 'FLUX_R',
 #          'FLUX_Z', 'FLUX_W1', 'FLUX_W2', 'FLUX_W3', 'FLUX_W4']]
@@ -69,8 +73,8 @@ d = cosmo.luminosity_distance(low_sb['Z_LEDA'])
 dist = np.array(d)
 low_sb['DIST'] = dist
 
+#%%
 # Calculating luminosity
-
 def MagCalc (f, d):
     
     d = d*(10**6)
@@ -171,7 +175,7 @@ plt.xlabel('SFR from the WISE4 band')
 plt.ylabel('SFR from the WISE3 band')
 plt.clf()
 
-
+#%%
 # Testing a linear regression to the data
 linregress = stats.linregress(np.log10(sfr4), np.log10(sfr3))
 regression_line = linregress.slope * np.log10(sfr4) + linregress.intercept
@@ -204,7 +208,6 @@ r_squared = linregress.rvalue**2
 print(f"Pearson's correlation coefficient (r): {r}")
 print(f"Fitted Regression Line (y = {linregress.slope:.2f}x + {linregress.intercept:.2f})")
 print(f"R-squared for Fitted Regression Line: {r_squared:.2f}")
-
 #%%
 # Plotting a Star Formation Main Sequence with each relation
 
@@ -221,11 +224,64 @@ y_fit = curve_function(x_fit, *params)
 
 y_dotted = curve_function(x_fit, params[0], params[1], params[2])
 
-plt.scatter(x, y, alpha=0.5)
-plt.plot(x_fit, y_fit, 'k', linewidth=2)
+plt.scatter(x, y, c=low_sb.Z_LEDA, cmap='cool', alpha=0.5)
+plt.plot(x_fit, y_fit, 'k', linewidth=2, label='SGA 10% dimmest SFMS')
+plt.plot(x_fit, y_dotted+0.4, 'k-.', linewidth=1)
+plt.plot(x_fit, y_dotted-0.4, 'k-.', linewidth=1)
 plt.xlabel('log Stellar Mass ($M_{\odot}$)')
-plt.ylabel('log SFR from the WISE3 band')
+plt.ylabel('log SFR from the WISE3 band ($M_{\odot} \; yr^{-1}$)')
 plt.xlim(6, 11.5)
+plt.ylim(-4, 2.8)
+
+cbar = plt.colorbar()
+cbar.set_label('Redshift')
+
+# Parameters from the XCOLDGASS SFMS
+a_xc = -4.460746
+b_xc = -0.836844
+c_xc = -0.039050
+
+x_new = np.linspace(min(x), 11.5, 100)
+y_new = curve_function(x_new, a_xc, b_xc, c_xc)
+
+plt.plot(x_fit, y_new, 'r', linewidth=2, label='XCOLDGASS SFMS')
+
+plt.legend()
+plt.show()
+
+print("Fitted Parameters:")
+print("a:", params[0])
+print("b:", params[1])
+print("c:", params[2])
+#%%
+# Using the Specific Star Formation (sSFR)
+
+def curve_function(x, a, b, c):
+    return a * x - b * x**2 + c * x**3
+
+x = stellar_mass
+y = np.log10(sfr3)-stellar_mass
+
+params, _ = curve_fit(curve_function, x, y)
+
+x_fit = np.linspace(min(x), 11.5, 100)
+y_fit = curve_function(x_fit, *params)
+
+y_dotted = curve_function(x_fit, params[0], params[1], params[2])
+
+plt.scatter(x, y, c=low_sb.Z_LEDA, cmap='cool', alpha=0.5)
+plt.plot(x_fit, y_fit, 'k', linewidth=2, label='SGA 10% dimmest SFMS')
+plt.plot(x_fit, y_dotted+0.4, 'k-.', linewidth=1)
+plt.plot(x_fit, y_dotted-0.4, 'k-.', linewidth=1)
+plt.xlabel('log Stellar Mass ($M_{\odot}$)')
+plt.ylabel('log sSFR from the WISE3 band ($yr^{-1}$)')
+plt.xlim(6, 11.5)
+# plt.ylim(-4, 2.8)
+
+cbar = plt.colorbar()
+cbar.set_label('Redshift')
+
+plt.legend()
 plt.show()
 
 print("Fitted Parameters:")
