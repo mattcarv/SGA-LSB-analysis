@@ -6,6 +6,8 @@ from scipy import stats
 from scipy.stats import skewnorm
 from scipy.optimize import curve_fit
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
+plt.rcParams["figure.figsize"] = [10, 8]
+plt.rcParams.update({'font.size': 18})
 
 #%% 
 # Selection criteria from the original SGA dataset
@@ -68,13 +70,14 @@ plt.ylabel(
 plt.xlabel('Mean Surface Brightness (B band, $mag \; arcsec^{-2}$)')
 plt.clf()
 
+#%%
+# Calculating luminosities, SFR and Stellar Mass
 # Assigning a distance column
 d = cosmo.luminosity_distance(low_sb['Z_LEDA'])
 dist = np.array(d)
 low_sb['DIST'] = dist
 
-#%%
-# Calculating luminosity
+
 def MagCalc (f, d):
     
     d = d*(10**6)
@@ -189,8 +192,8 @@ ax1.scatter(np.log10(sfr4), np.log10(sfr3), alpha=0.5)
 ax1.plot(np.log10(sfr4), regression_line, linestyle='dashdot', c='r', 
          label=f'Linear Regression (y = {linregress.slope:.4f}x + {linregress.intercept:.4f})'
          , alpha=0.8)
-plt.xlim(-3, 4)
-plt.ylim(-3, 4)
+plt.xlim(-3, 3.2)
+plt.ylim(-3, 3.2)
 ax1.legend()
 ax1.set_ylabel('SFR from the WISE3 band')
 
@@ -244,10 +247,12 @@ c_xc = -0.039050
 x_new = np.linspace(min(x), 11.5, 100)
 y_new = curve_function(x_new, a_xc, b_xc, c_xc)
 
-plt.plot(x_fit, y_new, 'r', linewidth=2, label='XCOLDGASS SFMS')
+plt.plot(x_new, y_new, 'r', linewidth=2, label='XCOLDGASS SFMS')
+plt.plot(x_new, y_new+0.4, 'r-.', linewidth=1)
+plt.plot(x_new, y_new-0.4, 'r-.', linewidth=1)
 
 plt.legend()
-plt.show()
+plt.clf()
 
 print("Fitted Parameters:")
 print("a:", params[0])
@@ -282,9 +287,10 @@ cbar = plt.colorbar()
 cbar.set_label('Redshift')
 
 plt.legend()
-plt.show()
+plt.clf()
 
 print("Fitted Parameters:")
 print("a:", params[0])
 print("b:", params[1])
 print("c:", params[2])
+#%%
