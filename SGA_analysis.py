@@ -98,9 +98,7 @@ low_sb['LUM_W2'] = LumCalc(mag2, 3.27)
 low_sb['LUM_W3'] = LumCalc(mag3, 3.23)
 low_sb['LUM_W4'] = LumCalc(mag4, 3.25)
 
-# Using a Mass-to-Light ratio to get Stellar Mass
 
-stellar_mass = np.log10(low_sb['LUM_W1'] * 0.6)
 
 # Scaling W3 and W4 with the W1 light
 
@@ -109,6 +107,9 @@ low_sb['LUM_W4'] = low_sb['LUM_W4']-(0.059*low_sb['LUM_W1'])
 low_sb = low_sb[low_sb.LUM_W3 > 0]
 low_sb = low_sb[low_sb.LUM_W4 > 0]
 
+# Using a Mass-to-Light ratio to get Stellar Mass
+
+stellar_mass = np.log10(low_sb['LUM_W1'] * 0.6)
 
 # Plotting the mass distribution of this subsample
 hist, bins, patches = plt.hist(stellar_mass, bins=1000, density=True)
@@ -203,3 +204,31 @@ r_squared = linregress.rvalue**2
 print(f"Pearson's correlation coefficient (r): {r}")
 print(f"Fitted Regression Line (y = {linregress.slope:.2f}x + {linregress.intercept:.2f})")
 print(f"R-squared for Fitted Regression Line: {r_squared:.2f}")
+
+#%%
+# Plotting a Star Formation Main Sequence with each relation
+
+def curve_function(x, a, b, c):
+    return a * x - b * x**2 + c * x**3
+
+x = stellar_mass
+y = np.log10(sfr3)
+
+params, _ = curve_fit(curve_function, stellar_mass, np.log10(sfr3))
+
+x_fit = np.linspace(min(x), 11.5, 100)
+y_fit = curve_function(x_fit, *params)
+
+y_dotted = curve_function(x_fit, params[0], params[1], params[2])
+
+plt.scatter(x, y, alpha=0.5)
+plt.plot(x_fit, y_fit, 'k', linewidth=2)
+plt.xlabel('log Stellar Mass ($M_{\odot}$)')
+plt.ylabel('log SFR from the WISE3 band')
+plt.xlim(6, 11.5)
+plt.show()
+
+print("Fitted Parameters:")
+print("a:", params[0])
+print("b:", params[1])
+print("c:", params[2])
