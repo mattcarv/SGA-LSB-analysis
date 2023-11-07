@@ -27,6 +27,7 @@ df = df[df.Z_LEDA < 0.1]
 # df = df[df.FLUX_W4 > 0]
 
 # df.to_csv('subsec_SGA.csv')
+
 # Create a histogram
 hist, bins = np.histogram(df['SB_D25_LEDA'], bins=1000)
 
@@ -361,7 +362,7 @@ plt.ylim(-3, 4.5)
 plt.xlabel('log SFR from the WISE3 band')
 plt.ylabel('log SFR from the WISE4 band')
 
-x_new = np.linspace(min(x), 11.5, 100)
+x_new = np.linspace(min(x), 11.7, 100)
 y_new = curve_function(x_new, a_xc, b_xc, c_xc)
 
 plt.plot(x_new, y_new, 'r', linewidth=2, label='XCOLDGASS SFMS')
