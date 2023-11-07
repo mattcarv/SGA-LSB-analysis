@@ -174,8 +174,8 @@ plt.plot(x, y ,'--', c='k')
 plt.scatter(np.log10(sfr4), np.log10(sfr3), alpha=0.5)
 plt.xlim(-3, 4)
 plt.ylim(-3, 4)
-plt.xlabel('SFR from the WISE4 band')
-plt.ylabel('SFR from the WISE3 band')
+plt.xlabel('log SFR from the WISE4 band')
+plt.ylabel('log SFR from the WISE3 band')
 plt.clf()
 
 #%%
@@ -294,3 +294,42 @@ print("a:", params[0])
 print("b:", params[1])
 print("c:", params[2])
 #%%
+# Testing the conversion from Lee et al. 2013
+
+def SFRCalcW3 (lum):
+    
+    SFR = 9.54 * (10e-10) * (lum**1.03)
+    
+    return SFR
+
+sfr3_lee = SFRCalcW3(low_sb['LUM_W3'])
+
+def SFRCalcW4 (lum):
+    
+    SFR = 4.25 * (10e-9) * (lum**0.96)
+    
+    return SFR
+
+sfr4_lee = SFRCalcW4(low_sb['LUM_W4'])
+
+x = np.linspace(-5, 4, 100)
+y = x
+
+plt.scatter(np.log10(sfr3_lee), np.log10(sfr4_lee), alpha=0.5)
+plt.plot(x, y ,'--', c='k')
+plt.xlim(-3, 4)
+plt.ylim(-3, 4)
+plt.xlabel('log SFR from the WISE3 band')
+plt.ylabel('log SFR from the WISE4 band')
+
+lin_reg = stats.linregress(np.log10(sfr3_lee), np.log10(sfr4_lee))
+regression_line = lin_reg.slope * np.log10(sfr4_lee) + lin_reg.intercept
+residuals = np.log10(sfr3_lee) - (lin_reg.slope * np.log10(sfr4_lee) + lin_reg.intercept)
+
+r_coef, p_value_coef = stats.pearsonr(np.log10(sfr3_lee), np.log10(sfr4_lee))
+r_squared_lee = lin_reg.rvalue**2
+
+print(r_coef)
+
+plt.show()
+
