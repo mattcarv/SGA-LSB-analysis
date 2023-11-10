@@ -372,4 +372,4 @@ plt.plot(x_new, y_new-0.4, 'r-.', linewidth=1)
 cbar = plt.colorbar()
 cbar.set_label('Redshift')
 
-plt.show()
+plt.clf()
