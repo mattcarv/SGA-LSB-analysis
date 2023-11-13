@@ -38,24 +38,21 @@ total_points = len(df['SB_D25_LEDA'])
 lower_10_percent = int(total_points * 0.9)
 
 # Find the bin edges that correspond to the lower 10% of data
-lower_bin_edges = bins[:-
-                       1][np.where(np.cumsum(hist) >= lower_10_percent)[0][-1]]
-
-upper_bin_edges = bins[:-
+bin_edges = bins[:-
                        1][np.where(np.cumsum(hist) <= lower_10_percent)[0][-1]]
 
 # Select data points in the lower 10% magnitudes
-up_sb = df[df['SB_D25_LEDA'] <= upper_bin_edges]
+up_sb = df[df['SB_D25_LEDA'] <= bin_edges]
 
 # Select data points in the upper 90% magnitudes
-low_sb = df[df['SB_D25_LEDA'] >= upper_bin_edges]
+low_sb = df[df['SB_D25_LEDA'] >= bin_edges]
 
 plt.hist(up_sb['SB_D25_LEDA'], bins=1000, ec='lightblue')
 plt.hist(low_sb['SB_D25_LEDA'], bins=1000, ec='r')
 plt.clf()
 
 plt.hist(df['SB_D25_LEDA'], bins=1000)
-plt.axvline(x=upper_bin_edges, color='red', linestyle='--', label='10% Cutoff')
+plt.axvline(x=bin_edges, color='red', linestyle='--', label='10% Cutoff')
 plt.ylabel('Number')
 plt.xlabel('Mean Surface Brightness (B band, $mag \; arcsec^{-2}$)')
 plt.legend()
