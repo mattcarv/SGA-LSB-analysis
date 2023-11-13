@@ -13,7 +13,7 @@ plt.rcParams.update({'font.size': 18})
 # Selection criteria from the original SGA dataset
 
 # Read the data from the FITS file
-df = pd.read_csv('C:/Users/mathe/Downloads/subsec_SGA.csv')
+df = pd.read_csv('/home/mdocarm/Downloads/subsec_SGA.csv')
 df = df[df.Z_LEDA < 0.1]
 # df = df[['SGA_ID_1', 'GALAXY', 'RA_LEDA', 'DEC_LEDA', 'MORPHTYPE', 'PA_LEDA',
 #          'D25_LEDA', 'BA_LEDA', 'Z_LEDA', 'SB_D25_LEDA', 'FLUX_G', 'FLUX_R',
@@ -39,13 +39,23 @@ lower_10_percent = int(total_points * 0.9)
 
 # Find the bin edges that correspond to the lower 10% of data
 lower_bin_edges = bins[:-
+                       1][np.where(np.cumsum(hist) >= lower_10_percent)[0][-1]]
+
+upper_bin_edges = bins[:-
                        1][np.where(np.cumsum(hist) <= lower_10_percent)[0][-1]]
 
 # Select data points in the lower 10% magnitudes
-low_sb = df[df['SB_D25_LEDA'] >= lower_bin_edges]
+up_sb = df[df['SB_D25_LEDA'] <= upper_bin_edges]
+
+# Select data points in the upper 90% magnitudes
+low_sb = df[df['SB_D25_LEDA'] >= upper_bin_edges]
+
+plt.hist(up_sb['SB_D25_LEDA'], bins=1000, ec='lightblue')
+plt.hist(low_sb['SB_D25_LEDA'], bins=1000, ec='r')
+plt.clf()
 
 plt.hist(df['SB_D25_LEDA'], bins=1000)
-plt.axvline(x=lower_bin_edges, color='red', linestyle='--', label='10% Cutoff')
+plt.axvline(x=upper_bin_edges, color='red', linestyle='--', label='10% Cutoff')
 plt.ylabel('Number')
 plt.xlabel('Mean Surface Brightness (B band, $mag \; arcsec^{-2}$)')
 plt.legend()
@@ -70,7 +80,6 @@ plt.ylabel(
     'Major axis diameter at the $25 \; mag \; arcsec^{-2}$ isophote (arcmin)')
 plt.xlabel('Mean Surface Brightness (B band, $mag \; arcsec^{-2}$)')
 plt.clf()
-
 #%%
 # Calculating luminosities, SFR and Stellar Mass
 # Assigning a distance column
@@ -177,7 +186,7 @@ plt.xlim(-3, 4)
 plt.ylim(-3, 4)
 plt.xlabel('log SFR from the WISE4 band')
 plt.ylabel('log SFR from the WISE3 band')
-plt.clf()
+plt.show()
 
 #%%
 # Testing a linear regression to the data
@@ -372,4 +381,4 @@ plt.plot(x_new, y_new-0.4, 'r-.', linewidth=1)
 cbar = plt.colorbar()
 cbar.set_label('Redshift')
 
-plt.clf()
+plt.show()
