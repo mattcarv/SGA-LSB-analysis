@@ -48,7 +48,7 @@ up_sb = df[df['SB_D25_LEDA'] <= bin_edges]
 low_sb = df[df['SB_D25_LEDA'] >= bin_edges]
 
 plt.hist(up_sb['SB_D25_LEDA'], bins=1000, ec='lightblue')
-plt.hist(low_sb['SB_D25_LEDA'], bins=1000, ec='r')
+#plt.hist(low_sb['SB_D25_LEDA'], bins=1000, ec='r')
 plt.clf()
 
 plt.hist(df['SB_D25_LEDA'], bins=1000)
@@ -59,6 +59,19 @@ plt.legend()
 plt.clf()
 
 # Calculate the mean and standard deviation for each
+mean_sb = up_sb['SB_D25_LEDA'].mean()
+std_sb = up_sb['SB_D25_LEDA'].std()
+mean_d = up_sb['D25_LEDA'].mean()
+std_d = up_sb['D25_LEDA'].std()
+
+sb_cutoff = mean_sb + 2*std_sb
+d_cutoff = mean_d + 2*std_d
+
+up_sb = up_sb[up_sb['SB_D25_LEDA'] < sb_cutoff]
+up_sb = up_sb[up_sb['D25_LEDA'] < d_cutoff]
+
+up_sb = up_sb.sample(n=4000, replace=True, random_state=1)
+
 mean_sb = low_sb['SB_D25_LEDA'].mean()
 std_sb = low_sb['SB_D25_LEDA'].std()
 mean_d = low_sb['D25_LEDA'].mean()
@@ -70,18 +83,23 @@ d_cutoff = mean_d + 2*std_d
 low_sb = low_sb[low_sb['SB_D25_LEDA'] < sb_cutoff]
 low_sb = low_sb[low_sb['D25_LEDA'] < d_cutoff]
 
-low_sb = low_sb.sample(frac=0.5, replace=True, random_state=1)
+low_sb = low_sb.sample(n=4000, replace=True, random_state=1)
 
-plt.scatter(low_sb['SB_D25_LEDA'], low_sb['D25_LEDA'], alpha=0.3)
+plt.scatter(up_sb['SB_D25_LEDA'], up_sb['D25_LEDA'], alpha=0.3)
 plt.ylabel(
     'Major axis diameter at the $25 \; mag \; arcsec^{-2}$ isophote (arcmin)')
 plt.xlabel('Mean Surface Brightness (B band, $mag \; arcsec^{-2}$)')
 plt.clf()
 #%%
+
 # Calculating luminosities, SFR and Stellar Mass
 # Assigning a distance column
-d = cosmo.luminosity_distance(low_sb['Z_LEDA'])
+d = cosmo.luminosity_distance(up_sb['Z_LEDA'])
 dist = np.array(d)
+up_sb['DIST'] = dist
+
+low_d = cosmo.luminosity_distance(low_sb['Z_LEDA'])
+dist = np.array(low_d)
 low_sb['DIST'] = dist
 
 
@@ -94,10 +112,15 @@ def MagCalc (f, d):
     
     return abs_m
 
-mag1 = MagCalc(low_sb['FLUX_W1'], low_sb['DIST'])
-mag2 = MagCalc(low_sb['FLUX_W2'], low_sb['DIST'])
-mag3 = MagCalc(low_sb['FLUX_W3'], low_sb['DIST'])
-mag4 = MagCalc(low_sb['FLUX_W4'], low_sb['DIST'])
+mag1 = MagCalc(up_sb['FLUX_W1'], up_sb['DIST'])
+mag2 = MagCalc(up_sb['FLUX_W2'], up_sb['DIST'])
+mag3 = MagCalc(up_sb['FLUX_W3'], up_sb['DIST'])
+mag4 = MagCalc(up_sb['FLUX_W4'], up_sb['DIST'])
+
+mag5 = MagCalc(low_sb['FLUX_W1'], low_sb['DIST'])
+mag6 = MagCalc(low_sb['FLUX_W2'], low_sb['DIST'])
+mag7 = MagCalc(low_sb['FLUX_W3'], low_sb['DIST'])
+mag8 = MagCalc(low_sb['FLUX_W4'], low_sb['DIST'])
 
 
 def LumCalc (mag, filt):
@@ -107,23 +130,34 @@ def LumCalc (mag, filt):
     
     return L
 
-low_sb['LUM_W1'] = LumCalc(mag1, 3.24)
-low_sb['LUM_W2'] = LumCalc(mag2, 3.27)
-low_sb['LUM_W3'] = LumCalc(mag3, 3.23)
-low_sb['LUM_W4'] = LumCalc(mag4, 3.25)
+up_sb['LUM_W1'] = LumCalc(mag1, 3.24)
+up_sb['LUM_W2'] = LumCalc(mag2, 3.27)
+up_sb['LUM_W3'] = LumCalc(mag3, 3.23)
+up_sb['LUM_W4'] = LumCalc(mag4, 3.25)
+
+low_sb['LOW_LUM_W1'] = LumCalc(mag5, 3.24)
+low_sb['LOW_LUM_W2'] = LumCalc(mag6, 3.27)
+low_sb['LOW_LUM_W3'] = LumCalc(mag7, 3.23)
+low_sb['LOW_LUM_W4'] = LumCalc(mag8, 3.25)
 
 
 
 # Scaling W3 and W4 with the W1 light
 
-low_sb['LUM_W3'] = low_sb['LUM_W3']-(0.158*low_sb['LUM_W1'])
-low_sb['LUM_W4'] = low_sb['LUM_W4']-(0.059*low_sb['LUM_W1'])
-low_sb = low_sb[low_sb.LUM_W3 > 0]
-low_sb = low_sb[low_sb.LUM_W4 > 0]
-low_sb.to_csv('second_subdf_SGA.csv')
+up_sb['LUM_W3'] = up_sb['LUM_W3']-(0.158*up_sb['LUM_W1'])
+up_sb['LUM_W4'] = up_sb['LUM_W4']-(0.059*up_sb['LUM_W1'])
+up_sb = up_sb[up_sb.LUM_W3 > 0]
+up_sb = up_sb[up_sb.LUM_W4 > 0]
+
+low_sb['LOW_LUM_W3'] = low_sb['LOW_LUM_W3']-(0.158*low_sb['LOW_LUM_W1'])
+low_sb['LOW_LUM_W4'] = low_sb['LOW_LUM_W4']-(0.059*low_sb['LOW_LUM_W1'])
+low_sb = low_sb[low_sb.LOW_LUM_W3 > 0]
+low_sb = low_sb[low_sb.LOW_LUM_W4 > 0]
+#up_sb.to_csv('second_subdf_SGA.csv')
 # Using a Mass-to-Light ratio to get Stellar Mass
 
-stellar_mass = np.log10(low_sb['LUM_W1'] * 0.6)
+stellar_mass = np.log10(up_sb['LUM_W1'] * 0.6)
+low_stellar_mass = np.log10(low_sb['LOW_LUM_W1'] * 0.6)
 
 # Plotting the mass distribution of this subsample
 hist, bins, patches = plt.hist(stellar_mass, bins=1000, density=True)
@@ -164,7 +198,7 @@ def SFRCalcW3 (lum):
     
     return SFR
 
-sfr3 = SFRCalcW3(low_sb['LUM_W3'])
+sfr3 = SFRCalcW3(up_sb['LUM_W3'])
 
 def SFRCalcW4 (lum):
     
@@ -172,21 +206,27 @@ def SFRCalcW4 (lum):
     
     return SFR
 
-sfr4 = SFRCalcW4(low_sb['LUM_W4'])
+sfr4 = SFRCalcW4(up_sb['LUM_W4'])
 
-x = np.linspace(-5, 4, 100)
+
+low_sfr3 = SFRCalcW3(low_sb['LOW_LUM_W3'])
+
+
+low_sfr4 = SFRCalcW4(low_sb['LOW_LUM_W4'])
+
+x = np.linspace(-5, 5, 100)
 y = x
 
 plt.plot(x, y ,'--', c='k')
 plt.scatter(np.log10(sfr4), np.log10(sfr3), alpha=0.5)
-plt.xlim(-3, 4)
-plt.ylim(-3, 4)
+plt.scatter(np.log(low_sfr4), np.log10(low_sfr3), alpha=0.5)
+plt.xlim(-3, 4.5)
+plt.ylim(-3, 4.5)
 plt.xlabel('log SFR from the WISE4 band')
 plt.ylabel('log SFR from the WISE3 band')
 plt.show()
-
 #%%
-# Testing a linear regression to the data
+
 linregress = stats.linregress(np.log10(sfr4), np.log10(sfr3))
 regression_line = linregress.slope * np.log10(sfr4) + linregress.intercept
 residuals = np.log10(sfr3) - (linregress.slope * np.log10(sfr4) + linregress.intercept)
@@ -219,32 +259,35 @@ print(f"Pearson's correlation coefficient (r): {r}")
 print(f"Fitted Regression Line (y = {linregress.slope:.2f}x + {linregress.intercept:.2f})")
 print(f"R-squared for Fitted Regression Line: {r_squared:.2f}")
 #%%
-# Plotting a Star Formation Main Sequence with each relation
 
 def curve_function(x, a, b, c):
     return a * x - b * x**2 + c * x**3
 
 x = stellar_mass
-y = np.log10(sfr4)
+y = np.log10(sfr3)
 
-params, _ = curve_fit(curve_function, stellar_mass, np.log10(sfr4))
+low_x = low_stellar_mass
+low_y = np.log10(low_sfr3)
+
+params, _ = curve_fit(curve_function, low_stellar_mass, np.log10(low_sfr3))
 
 x_fit = np.linspace(min(x), 11.5, 100)
 y_fit = curve_function(x_fit, *params)
 
 y_dotted = curve_function(x_fit, params[0], params[1], params[2])
 
-plt.scatter(x, y, c=low_sb.Z_LEDA, cmap='cool', alpha=0.5)
-plt.plot(x_fit, y_fit, 'k', linewidth=2, label='SGA 10% dimmest SFMS')
+plt.scatter(x, y, alpha=0.4, label='Upper 90%')
+plt.scatter(low_x, low_y, alpha=0.4, label='Lower 10%')
+plt.plot(x_fit, y_fit, 'k', linewidth=2)
 plt.plot(x_fit, y_dotted+0.4, 'k-.', linewidth=1)
 plt.plot(x_fit, y_dotted-0.4, 'k-.', linewidth=1)
 plt.xlabel('log Stellar Mass ($M_{\odot}$)')
-plt.ylabel('log SFR from the WISE4 band ($M_{\odot} \; yr^{-1}$)')
+plt.ylabel('log SFR from the WISE3 band ($M_{\odot} \; yr^{-1}$)')
 plt.xlim(6, 11.5)
-plt.ylim(-4, 2.8)
+plt.ylim(-4, 3.5)
 
-cbar = plt.colorbar()
-cbar.set_label('Redshift')
+# cbar = plt.colorbar()
+# cbar.set_label('Redshift')
 
 # Parameters from the XCOLDGASS SFMS
 a_xc = -4.460746
@@ -265,6 +308,85 @@ print("Fitted Parameters:")
 print("a:", params[0])
 print("b:", params[1])
 print("c:", params[2])
+#%%
+# Testing the conversion from Lee et al. 2013
+
+def SFRCalcW3 (lum):
+    
+    SFR = 9.54 * (10e-10) * (lum**1.03)
+    
+    return SFR
+
+sfr3_lee = SFRCalcW3(low_sb['LUM_W3'])
+
+def SFRCalcW4 (lum):
+    
+    SFR = 4.25 * (10e-9) * (lum**0.96)
+    
+    return SFR
+
+sfr4_lee = SFRCalcW4(low_sb['LUM_W4'])
+
+x = np.linspace(-5, 4.5, 100)
+y = x
+
+lin_reg = stats.linregress(np.log10(sfr3_lee), np.log10(sfr4_lee))
+reg_line = lin_reg.slope * np.log10(sfr3_lee) + lin_reg.intercept
+
+r_coef, p_value_coef = stats.pearsonr(np.log10(sfr3_lee), np.log10(sfr4_lee))
+r_squared_lee = lin_reg.rvalue**2
+
+plt.scatter(np.log10(sfr3_lee), np.log10(sfr4_lee), alpha=0.5)
+plt.plot(x, y ,'--', c='k')
+plt.plot(np.log10(sfr3_lee), reg_line, linestyle='dashdot', c='r', 
+         label=f'Linear Regression (y = {lin_reg.slope:.4f}x + {lin_reg.intercept:.4f})'
+         , alpha=0.8)
+plt.xlim(-3, 4)
+plt.ylim(-3, 4)
+plt.xlabel('log SFR from the WISE3 band')
+plt.ylabel('log SFR from the WISE4 band')
+
+
+print(f"Pearson's correlation coefficient (r): {r_coef}")
+print(f"Fitted Regression Line (y = {lin_reg.slope:.2f}x + {lin_reg.intercept:.2f})")
+print(f"R-squared for Fitted Regression Line: {r_squared_lee:.2f}")
+
+
+plt.legend()
+plt.show()
+#%%
+
+# SFMS from the Lee scaling relation
+
+def curve_function(x, a, b, c):
+    return a * x - b * x**2 + c * x**3
+
+x_lee = stellar_mass
+y_lee = np.log10(sfr3_lee)
+
+params, _ = curve_fit(curve_function, x_lee, y_lee)
+
+x_fit = np.linspace(min(x), 11.7, 100)
+y_fit = curve_function(x_fit, *params)
+
+plt.scatter(x_lee, y_lee, c=low_sb.Z_LEDA, cmap='viridis', alpha=0.5)
+plt.plot(x_fit, y_fit, c='k', linewidth=2)
+plt.xlim(6, 11.6)
+plt.ylim(-3, 4.5)
+plt.xlabel('log SFR from the WISE3 band')
+plt.ylabel('log SFR from the WISE4 band')
+
+x_new = np.linspace(min(x), 11.7, 100)
+y_new = curve_function(x_new, a_xc, b_xc, c_xc)
+
+plt.plot(x_new, y_new, 'r', linewidth=2, label='XCOLDGASS SFMS')
+plt.plot(x_new, y_new+0.4, 'r-.', linewidth=1)
+plt.plot(x_new, y_new-0.4, 'r-.', linewidth=1)
+
+cbar = plt.colorbar()
+cbar.set_label('Redshift')
+
+plt.show()
 #%%
 # Using the Specific Star Formation (sSFR)
 
