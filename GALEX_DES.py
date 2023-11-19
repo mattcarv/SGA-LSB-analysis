@@ -35,7 +35,6 @@ fw4_cutoff = mean_fw4 + 2*std_fw4
 
 df = df[df['FLUX_W3'] < fw3_cutoff]
 df = df[df['FLUX_W4'] < fw4_cutoff]
-
 #%%
 
 # Calculating luminosities, SFR and Stellar Mass
@@ -83,9 +82,8 @@ df = df[df.LUM_W4 > 0]
 
 stellar_mass = np.log10(df['LUM_W1'] * 0.6)
 
-
 # Plotting the mass distribution of this subsample
-hist, bins, patches = plt.hist(stellar_mass, bins=1000, density=True)
+hist, bins, patches = plt.hist(stellar_mass, bins=10, density=True)
 
 def skewed_gaussian(x, a, mean, std, skew):
     
@@ -145,3 +143,18 @@ plt.ylim(-3, 4.5)
 plt.xlabel('log SFR from the WISE4 band')
 plt.ylabel('log SFR from the WISE3 band')
 plt.show()
+
+#%%
+# Using NUV to calculate SFR
+
+def fUV (NUVmag):
+    
+    f = (2.06*(10**-16))*(10**((NUVmag-20.08)/(-2.5)))
+
+    return f
+
+fluxNUV = fUV(df['NUVmag'])
+
+def lumUV(flux, d):
+    
+    
