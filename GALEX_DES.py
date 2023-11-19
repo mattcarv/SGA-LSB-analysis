@@ -80,7 +80,7 @@ df = df[df.LUM_W4 > 0]
 #df.to_csv('second_subdf_SGA.csv')
 # Using a Mass-to-Light ratio to get Stellar Mass
 
-stellar_mass = np.log10(df['LUM_W1'] * 0.6)
+stellar_mass = np.log10(df['LUM_W1'] * 0.35)
 
 # Plotting the mass distribution of this subsample
 hist, bins, patches = plt.hist(stellar_mass, bins=10, density=True)
@@ -147,14 +147,36 @@ plt.show()
 # Using NUV to calculate SFR
 
 def fUV (NUVmag):
-    
-    f = (2.06*(10**-16))*(10**((NUVmag-20.08)/(-2.5)))
+    '''
 
-    return f
+    Parameters
+    ----------
+    NUVmag : float
+        Magnitude of the LSB galaxy in the GALEX NUV band.
+
+    Returns
+    -------
+    flux : float
+        Returns the flux in NUV of the galaxy based on the conversion available
+        on the GALEX documentation.
+
+    '''
+    flux = (2.06*(10**-16))*(10**((NUVmag-20.08)/(-2.5)))
+
+    return flux
 
 fluxNUV = fUV(df['NUVmag'])
 
 def lumUV(flux, d):
+    '''
+    This function takes the NUV flux, rescales it to the correct units and calculates
+    the luminosity for this band.
+    
+    d: distance in Megaparsec and scaled to cm
+    flux: NUV flux in erg s^-1 cm^-2 A^-1 scaled to erg s^-1 cm^-2 Hz^-1
+    
+    '''
+    
     
     d = d*(3.086*(10**24))
     flux = flux*2267/(1.32*(10**15))
@@ -218,3 +240,15 @@ plt.show()
 # print("a:", params[0])
 # print("b:", params[1])
 # print("c:", params[2])
+#%%
+
+x = np.linspace(-5, 5, 100)
+y = x
+
+plt.plot(x, y ,'--', c='k')
+plt.scatter(np.log10(sfrUV), np.log10(sfr4), alpha=0.5)
+plt.xlim(-3, 4.5)
+plt.ylim(-3, 4.5)
+plt.xlabel('log SFR from the GALEX NUV band')
+plt.ylabel('log SFR from the WISE4 band')
+plt.show()
