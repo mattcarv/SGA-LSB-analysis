@@ -143,7 +143,6 @@ plt.ylim(-3, 4.5)
 plt.xlabel('log SFR from the WISE4 band')
 plt.ylabel('log SFR from the WISE3 band')
 plt.show()
-
 #%%
 # Using NUV to calculate SFR
 
@@ -157,4 +156,65 @@ fluxNUV = fUV(df['NUVmag'])
 
 def lumUV(flux, d):
     
+    d = d*(3.086*(10**24))
+    flux = flux*2267/(1.32*(10**15))
+    lum = 4*np.pi*(d**2)*flux
     
+    return lum
+
+lum = lumUV(fluxNUV, df['DIST'])
+
+def SFRCalcUV (lum):
+    
+    SFR = lum*(10**(-28))
+    
+    return SFR
+
+sfrUV = SFRCalcUV(lum)
+
+#%%
+# Calculating SFR from GALEX NUV
+def curve_function(x, a, b, c):
+    return a * x - b * x**2 + c * x**3
+
+x = stellar_mass
+y = np.log10(sfrUV)
+
+params, _ = curve_fit(curve_function, stellar_mass, np.log10(sfrUV))
+
+x_fit = np.linspace(min(x), 11.5, 100)
+y_fit = curve_function(x_fit, *params)
+
+y_dotted = curve_function(x_fit, params[0], params[1], params[2])
+
+plt.scatter(x, y, alpha=0.8, label='LSBs from the DES')
+plt.plot(x_fit, y_fit, 'k', linewidth=2)
+plt.plot(x_fit, y_dotted+0.4, 'k-.', linewidth=1)
+plt.plot(x_fit, y_dotted-0.4, 'k-.', linewidth=1)
+plt.xlabel('log Stellar Mass ($M_{\odot}$)')
+plt.ylabel('log SFR from GALEX NUV ($M_{\odot} \; yr^{-1}$)')
+plt.xlim(8.1, 11)
+plt.ylim(-3, 1)
+
+# cbar = plt.colorbar()
+# cbar.set_label('Redshift')
+
+# Parameters from the XCOLDGASS SFMS
+a_xc = -4.460746
+b_xc = -0.836844
+c_xc = -0.039050
+
+x_new = np.linspace(min(x), 11.5, 100)
+y_new = curve_function(x_new, a_xc, b_xc, c_xc)
+
+plt.plot(x_new, y_new, 'r', linewidth=2, label='XCOLDGASS SFMS')
+plt.plot(x_new, y_new+0.4, 'r-.', linewidth=1)
+plt.plot(x_new, y_new-0.4, 'r-.', linewidth=1)
+
+plt.legend()
+plt.show()
+
+# print("Fitted Parameters:")
+# print("a:", params[0])
+# print("b:", params[1])
+# print("c:", params[2])
