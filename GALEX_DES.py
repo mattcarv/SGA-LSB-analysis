@@ -4,16 +4,17 @@ import matplotlib.pyplot as plt
 from astropy.cosmology import FlatLambdaCDM
 from astropy.table import Table
 from scipy import stats
+import seaborn as sns
 from scipy.stats import skewnorm
 from scipy.optimize import curve_fit
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 plt.rcParams["figure.figsize"] = [10, 8]
 plt.rcParams.update({'font.size': 18})
 
-file = Table.read('C:/Users/mathe/Downloads/DxGxS.fits')
+file = Table.read('/home/mdocarm/Downloads/DxGxS.fits')
 file.keep_columns(['SGA_ID_1', 'GALAXY', 'RA_LEDA', 'DEC_LEDA',
                    'MORPHTYPE', 'PA_LEDA','D25_LEDA', 'BA_LEDA', 'Z_LEDA',
-                   'SB_D25_LEDA', 'FLUX_G', 'FLUX_R','FLUX_Z', 'FLUX_W1', 
+                   'SB_D25_LEDA', 'imagSE', 'rmagSE', 'gmagSE', 'FLUX_G', 'FLUX_R','FLUX_Z', 'FLUX_W1', 
                    'FLUX_W2', 'FLUX_W3', 'FLUX_W4', 'NUVmag'])
 df = file.to_pandas()
 
@@ -209,7 +210,7 @@ y_fit = curve_function(x_fit, *params)
 
 y_dotted = curve_function(x_fit, params[0], params[1], params[2])
 
-plt.scatter(x, y, alpha=0.8, label='LSBs from the DES')
+plt.scatter(x, y, alpha=0.8, c=df.D25_LEDA, cmap='cool', label='LSBs from the DES')
 plt.plot(x_fit, y_fit, 'k', linewidth=2)
 plt.plot(x_fit, y_dotted+0.4, 'k-.', linewidth=1)
 plt.plot(x_fit, y_dotted-0.4, 'k-.', linewidth=1)
@@ -218,8 +219,8 @@ plt.ylabel('log SFR from GALEX NUV ($M_{\odot} \; yr^{-1}$)')
 plt.xlim(8.1, 11)
 plt.ylim(-3, 1)
 
-# cbar = plt.colorbar()
-# cbar.set_label('Redshift')
+cbar = plt.colorbar()
+cbar.set_label('Major axis diameter (arcmin)')
 
 # Parameters from the XCOLDGASS SFMS
 a_xc = -4.460746
@@ -236,19 +237,91 @@ plt.plot(x_new, y_new-0.4, 'r-.', linewidth=1)
 plt.legend()
 plt.show()
 
-# print("Fitted Parameters:")
-# print("a:", params[0])
-# print("b:", params[1])
-# print("c:", params[2])
+print("Fitted Parameters:")
+print("a:", params[0])
+print("b:", params[1])
+print("c:", params[2])
+
+residuals = np.log10(sfrUV) - (curve_function(stellar_mass, params[0], params[1], params[2]))
+plt.scatter(stellar_mass, residuals, c=df.D25_LEDA, cmap='cool', alpha=0.8)
+plt.axhline(y=0, color='k', linestyle='--')
+plt.xlabel('log Stellar Mass ($M_{\odot}$)')
+plt.ylabel('Residuals ($log\;M_{\odot}\;yr^{-1}$)')
+
+cbar = plt.colorbar()
+cbar.set_label('Major axis diameter (arcmin)')
+
+plt.show()
 #%%
 
 x = np.linspace(-5, 5, 100)
 y = x
 
 plt.plot(x, y ,'--', c='k')
-plt.scatter(np.log10(sfrUV), np.log10(sfr4), alpha=0.5)
+plt.scatter(np.log10(sfrUV), np.log10(sfr3), alpha=0.5)
 plt.xlim(-3, 4.5)
 plt.ylim(-3, 4.5)
 plt.xlabel('log SFR from the GALEX NUV band')
-plt.ylabel('log SFR from the WISE4 band')
+plt.ylabel('log SFR from the WISE3 band')
 plt.show()
+
+#%%
+# Testing the correlation between all variables to track a possible relation
+
+plt.figure(figsize=(25, 10))
+mask = np.triu(np.ones_like(df.corr(), dtype=bool))
+heatmap = sns.heatmap(df.corr(), annot=True, mask=mask, cmap='BrBG')
+
+#%%
+# Understanding the colour distribution of the sample
+# Check the tightness between the colours from the DES and from the SGA
+
+def MagCalc (f):
+    
+    m = 22.5 - (2.5*np.log10(f))
+    
+    return m
+
+mag_g = MagCalc(df['FLUX_G'])
+mag_r = MagCalc(df['FLUX_R'])
+mag_z = MagCalc(df['FLUX_Z'])
+mag_nuv = df['NUVmag']
+
+
+x = np.linspace(12, 23, 200)
+y = x
+
+plt.plot(x, y ,'--', c='k')
+plt.scatter(mag_g, df.gmagSE, alpha=0.5)
+plt.xlim(12, 23)
+plt.ylim(12, 23)
+plt.xlabel('Mag (g-band) from the SGA')
+plt.ylabel('Mag (g-band) from the DES')
+plt.clf()
+
+colour_gr = df.gmagSE - df.rmagSE
+colour_gi = df.gmagSE - df.imagSE
+colour_nuvr = mag_nuv - df.rmagSE
+
+plt.scatter(colour_gi, colour_gr, c=np.log10(sfrUV), cmap='mako')
+plt.axvline(x=0.6, color='k', linestyle='--')
+plt.text(0.2, 0.9, 'Blue LSBs', c='blue')
+plt.text(0.7, 0.9, 'Red LSBs', c='r')
+plt.xlabel('g-i')
+plt.ylabel('g-r')
+
+cbar = plt.colorbar()
+cbar.set_label('log SFR ($M_{\odot}\; yr^{-1}$)')
+# cbar.set_label('log Stellar Mass ($M_{\odot}$)')
+
+plt.show()
+
+#%%
+# Separating into blue and red galaxies
+
+df['colour_gr'] = colour_gr
+df['colour_gi'] = colour_gi
+df['colour_nuvr'] = colour_nuvr
+
+df_blue = df[df.colour_gi < 0.6]
+df_red = df[df.colour_gi >= 0.6]
