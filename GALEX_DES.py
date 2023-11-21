@@ -192,20 +192,17 @@ def SFRCalcUV (lum):
     SFR = lum*(10**(-28))
     
     return SFR
-
-sfrUV = SFRCalcUV(lum)
-
 #%%
 # Calculating SFR from GALEX NUV
 def curve_function(x, a, b, c):
     return a * x - b * x**2 + c * x**3
 
 x = stellar_mass
-y = np.log10(sfrUV)
+y = np.log10(df.sfrUV)
 
-params, _ = curve_fit(curve_function, stellar_mass, np.log10(sfrUV))
+params, _ = curve_fit(curve_function, stellar_mass, np.log10(df.sfrUV))
 
-x_fit = np.linspace(min(x), 11.5, 100)
+x_fit = np.linspace(5, 11.5, 100)
 y_fit = curve_function(x_fit, *params)
 
 y_dotted = curve_function(x_fit, params[0], params[1], params[2])
@@ -216,7 +213,7 @@ plt.plot(x_fit, y_dotted+0.4, 'k-.', linewidth=1)
 plt.plot(x_fit, y_dotted-0.4, 'k-.', linewidth=1)
 plt.xlabel('log Stellar Mass ($M_{\odot}$)')
 plt.ylabel('log SFR from GALEX NUV ($M_{\odot} \; yr^{-1}$)')
-plt.xlim(8.1, 11)
+plt.xlim(6, 11)
 plt.ylim(-3, 1)
 
 cbar = plt.colorbar()
@@ -227,7 +224,7 @@ a_xc = -4.460746
 b_xc = -0.836844
 c_xc = -0.039050
 
-x_new = np.linspace(min(x), 11.5, 100)
+x_new = np.linspace(5, 11.5, 100)
 y_new = curve_function(x_new, a_xc, b_xc, c_xc)
 
 plt.plot(x_new, y_new, 'r', linewidth=2, label='XCOLDGASS SFMS')
@@ -242,7 +239,7 @@ print("a:", params[0])
 print("b:", params[1])
 print("c:", params[2])
 
-residuals = np.log10(sfrUV) - (curve_function(stellar_mass, params[0], params[1], params[2]))
+residuals = np.log10(df.sfrUV) - (curve_function(stellar_mass, params[0], params[1], params[2]))
 plt.scatter(stellar_mass, residuals, c=df.D25_LEDA, cmap='cool', alpha=0.8)
 plt.axhline(y=0, color='k', linestyle='--')
 plt.xlabel('log Stellar Mass ($M_{\odot}$)')
@@ -258,7 +255,7 @@ x = np.linspace(-5, 5, 100)
 y = x
 
 plt.plot(x, y ,'--', c='k')
-plt.scatter(np.log10(sfrUV), np.log10(sfr3), alpha=0.5)
+plt.scatter(np.log10(df.sfrUV), np.log10(sfr3), alpha=0.5)
 plt.xlim(-3, 4.5)
 plt.ylim(-3, 4.5)
 plt.xlabel('log SFR from the GALEX NUV band')
@@ -303,7 +300,7 @@ colour_gr = df.gmagSE - df.rmagSE
 colour_gi = df.gmagSE - df.imagSE
 colour_nuvr = mag_nuv - df.rmagSE
 
-plt.scatter(colour_gi, colour_gr, c=np.log10(sfrUV), cmap='mako')
+plt.scatter(colour_gi, colour_gr, c=np.log10(df.sfrUV), cmap='mako')
 plt.axvline(x=0.6, color='k', linestyle='--')
 plt.text(0.2, 0.9, 'Blue LSBs', c='blue')
 plt.text(0.7, 0.9, 'Red LSBs', c='r')
@@ -317,11 +314,21 @@ cbar.set_label('log SFR ($M_{\odot}\; yr^{-1}$)')
 plt.show()
 
 #%%
-# Separating into blue and red galaxies
+# Separating into blue and red galaxies and analyzing their SFR
 
 df['colour_gr'] = colour_gr
 df['colour_gi'] = colour_gi
 df['colour_nuvr'] = colour_nuvr
 
-df_blue = df[df.colour_gi < 0.6]
-df_red = df[df.colour_gi >= 0.6]
+# Median g-i
+df_blue = df[df.colour_gi < 0.55]
+df_red = df[df.colour_gi >= 0.55]
+
+plt.hist(np.log10(df_blue.sfrUV), bins=5, color='blue', histtype='step', label='Blue LSBs')
+plt.hist(np.log10(df_red.sfrUV), bins=5, color='r', histtype='step', label='Red LSBs')
+plt.axvline(np.log10(df_blue.sfrUV).mean(), color='blue', linestyle='--')
+plt.axvline(np.log10(df_red.sfrUV).mean(), color='r', linestyle='--')
+plt.xlabel('log SFR from the GALEX NUV band ($M_{\odot}\; yr^{-1}$)')
+plt.ylabel('Count')
+plt.legend()
+plt.show()
