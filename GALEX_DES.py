@@ -11,7 +11,7 @@ cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 plt.rcParams["figure.figsize"] = [10, 8]
 plt.rcParams.update({'font.size': 18})
 
-file = Table.read('/home/mdocarm/Downloads/DxGxS.fits')
+file = Table.read('C:/Users/mathe/Downloads/DxGxS.fits')
 file.keep_columns(['SGA_ID_1', 'GALAXY', 'RA_LEDA', 'DEC_LEDA',
                    'MORPHTYPE', 'PA_LEDA','D25_LEDA', 'BA_LEDA', 'Z_LEDA',
                    'SB_D25_LEDA', 'imagSE', 'rmagSE', 'gmagSE', 'FLUX_G', 'FLUX_R','FLUX_Z', 'FLUX_W1', 
@@ -192,6 +192,8 @@ def SFRCalcUV (lum):
     SFR = lum*(10**(-28))
     
     return SFR
+
+df['sfrUV'] = SFRCalcUV(lum)
 #%%
 # Calculating SFR from GALEX NUV
 def curve_function(x, a, b, c):
@@ -207,13 +209,13 @@ y_fit = curve_function(x_fit, *params)
 
 y_dotted = curve_function(x_fit, params[0], params[1], params[2])
 
-plt.scatter(x, y, alpha=0.8, c=df.D25_LEDA, cmap='cool', label='LSBs from the DES')
+plt.scatter(x, y, alpha=0.8, c=df.DIST, cmap='cool', label='LSBs from the DES')
 plt.plot(x_fit, y_fit, 'k', linewidth=2)
 plt.plot(x_fit, y_dotted+0.4, 'k-.', linewidth=1)
 plt.plot(x_fit, y_dotted-0.4, 'k-.', linewidth=1)
 plt.xlabel('log Stellar Mass ($M_{\odot}$)')
 plt.ylabel('log SFR from GALEX NUV ($M_{\odot} \; yr^{-1}$)')
-plt.xlim(6, 11)
+plt.xlim(7.8, 11)
 plt.ylim(-3, 1)
 
 cbar = plt.colorbar()
@@ -294,7 +296,7 @@ plt.xlim(12, 23)
 plt.ylim(12, 23)
 plt.xlabel('Mag (g-band) from the SGA')
 plt.ylabel('Mag (g-band) from the DES')
-plt.clf()
+plt.show()
 
 colour_gr = df.gmagSE - df.rmagSE
 colour_gi = df.gmagSE - df.imagSE
@@ -331,4 +333,63 @@ plt.axvline(np.log10(df_red.sfrUV).mean(), color='r', linestyle='--')
 plt.xlabel('log SFR from the GALEX NUV band ($M_{\odot}\; yr^{-1}$)')
 plt.ylabel('Count')
 plt.legend()
+plt.show()
+
+#%%
+# SFMS but colour coded by g-i colour
+
+def curve_function(x, a, b, c):
+    return a * x - b * x**2 + c * x**3
+
+x = stellar_mass
+y = np.log10(df.sfrUV)
+
+params, _ = curve_fit(curve_function, stellar_mass, np.log10(df.sfrUV))
+
+x_fit = np.linspace(5, 11.5, 100)
+y_fit = curve_function(x_fit, *params)
+
+y_dotted = curve_function(x_fit, params[0], params[1], params[2])
+
+plt.scatter(x, y, alpha=0.8, c=df.colour_gi, cmap='coolwarm', label='LSBs from the DES')
+plt.plot(x_fit, y_fit, 'k', linewidth=2)
+plt.plot(x_fit, y_dotted+0.4, 'k-.', linewidth=1)
+plt.plot(x_fit, y_dotted-0.4, 'k-.', linewidth=1)
+plt.xlabel('log Stellar Mass ($M_{\odot}$)')
+plt.ylabel('log SFR from GALEX NUV ($M_{\odot} \; yr^{-1}$)')
+plt.xlim(7.8, 11)
+plt.ylim(-3, 1)
+
+cbar = plt.colorbar()
+cbar.set_label('g-i')
+
+# Parameters from the XCOLDGASS SFMS
+a_xc = -4.460746
+b_xc = -0.836844
+c_xc = -0.039050
+
+x_new = np.linspace(5, 11.5, 100)
+y_new = curve_function(x_new, a_xc, b_xc, c_xc)
+
+plt.plot(x_new, y_new, 'r', linewidth=2, label='XCOLDGASS SFMS')
+plt.plot(x_new, y_new+0.4, 'r-.', linewidth=1)
+plt.plot(x_new, y_new-0.4, 'r-.', linewidth=1)
+
+plt.legend()
+plt.show()
+
+print("Fitted Parameters:")
+print("a:", params[0])
+print("b:", params[1])
+print("c:", params[2])
+
+residuals = np.log10(df.sfrUV) - (curve_function(stellar_mass, params[0], params[1], params[2]))
+plt.scatter(stellar_mass, residuals, c=df.colour_gi, cmap='coolwarm', alpha=0.8)
+plt.axhline(y=0, color='k', linestyle='--')
+plt.xlabel('log Stellar Mass ($M_{\odot}$)')
+plt.ylabel('Residuals ($log\;M_{\odot}\;yr^{-1}$)')
+
+cbar = plt.colorbar()
+cbar.set_label('g-i')
+
 plt.show()
