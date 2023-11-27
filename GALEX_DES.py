@@ -11,7 +11,7 @@ cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 plt.rcParams["figure.figsize"] = [10, 8]
 plt.rcParams.update({'font.size': 18})
 
-file = Table.read('C:/Users/mathe/Downloads/DxGxS.fits')
+file = Table.read('/home/mdocarm/Downloads/DxGxS.fits')
 file.keep_columns(['SGA_ID_1', 'GALAXY', 'RA_LEDA', 'DEC_LEDA',
                    'MORPHTYPE', 'PA_LEDA','D25_LEDA', 'BA_LEDA', 'Z_LEDA',
                    'SB_D25_LEDA', 'imagSE', 'rmagSE', 'gmagSE', 'FLUX_G', 'FLUX_R','FLUX_Z', 'FLUX_W1', 
@@ -23,19 +23,20 @@ df = df[df.FLUX_W1 > 0]
 df = df[df.FLUX_W2 > 0]
 df = df[df.FLUX_W3 > 0]
 df = df[df.FLUX_W4 > 0]
+print(df.BA_LEDA)
 #%%
 # Cleaning the sample - getting rid of extremes
 
-mean_fw3 = df['FLUX_W3'].mean()
-std_fw3 = df['FLUX_W3'].std()
-mean_fw4 = df['FLUX_W4'].mean()
-std_fw4 = df['FLUX_W4'].std()
+# mean_fw3 = df['FLUX_W3'].mean()
+# std_fw3 = df['FLUX_W3'].std()
+# mean_fw4 = df['FLUX_W4'].mean()
+# std_fw4 = df['FLUX_W4'].std()
 
-fw3_cutoff = mean_fw3 + 2*std_fw3
-fw4_cutoff = mean_fw4 + 2*std_fw4
+# fw3_cutoff = mean_fw3 + 2*std_fw3
+# fw4_cutoff = mean_fw4 + 2*std_fw4
 
-df = df[df['FLUX_W3'] < fw3_cutoff]
-df = df[df['FLUX_W4'] < fw4_cutoff]
+# df = df[df['FLUX_W3'] < fw3_cutoff]
+# df = df[df['FLUX_W4'] < fw4_cutoff]
 #%%
 
 # Calculating luminosities, SFR and Stellar Mass
@@ -209,7 +210,7 @@ y_fit = curve_function(x_fit, *params)
 
 y_dotted = curve_function(x_fit, params[0], params[1], params[2])
 
-plt.scatter(x, y, alpha=0.8, c=df.DIST, cmap='cool', label='LSBs from the DES')
+plt.scatter(x, y, alpha=0.8, label='LSBs from the DES')
 plt.plot(x_fit, y_fit, 'k', linewidth=2)
 plt.plot(x_fit, y_dotted+0.4, 'k-.', linewidth=1)
 plt.plot(x_fit, y_dotted-0.4, 'k-.', linewidth=1)
@@ -218,8 +219,8 @@ plt.ylabel('log SFR from GALEX NUV ($M_{\odot} \; yr^{-1}$)')
 plt.xlim(7.8, 11)
 plt.ylim(-3, 1)
 
-cbar = plt.colorbar()
-cbar.set_label('Major axis diameter (arcmin)')
+# cbar = plt.colorbar()
+# cbar.set_label('Major axis diameter (arcmin)')
 
 # Parameters from the XCOLDGASS SFMS
 a_xc = -4.460746
@@ -242,13 +243,14 @@ print("b:", params[1])
 print("c:", params[2])
 
 residuals = np.log10(df.sfrUV) - (curve_function(stellar_mass, params[0], params[1], params[2]))
-plt.scatter(stellar_mass, residuals, c=df.D25_LEDA, cmap='cool', alpha=0.8)
+plt.scatter(stellar_mass, residuals, alpha=0.8)
+plt.xlim(7.8, 11)
 plt.axhline(y=0, color='k', linestyle='--')
 plt.xlabel('log Stellar Mass ($M_{\odot}$)')
 plt.ylabel('Residuals ($log\;M_{\odot}\;yr^{-1}$)')
 
-cbar = plt.colorbar()
-cbar.set_label('Major axis diameter (arcmin)')
+# cbar = plt.colorbar()
+# cbar.set_label('Major axis diameter (arcmin)')
 
 plt.show()
 #%%
