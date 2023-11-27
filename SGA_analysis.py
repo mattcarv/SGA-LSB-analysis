@@ -47,6 +47,7 @@ up_sb = df[df['SB_D25_LEDA'] <= bin_edges]
 # Select data points in the upper 90% magnitudes
 low_sb = df[df['SB_D25_LEDA'] >= bin_edges]
 
+
 plt.hist(up_sb['SB_D25_LEDA'], bins=1000, ec='lightblue')
 #plt.hist(low_sb['SB_D25_LEDA'], bins=1000, ec='r')
 plt.clf()
@@ -264,7 +265,7 @@ def curve_function(x, a, b, c):
     return a * x - b * x**2 + c * x**3
 
 x = stellar_mass
-y = np.log10(sfr3)
+y = np.log10(low_sfr3)
 
 low_x = low_stellar_mass
 low_y = np.log10(low_sfr3)
