@@ -15,28 +15,34 @@ file = Table.read('/home/mdocarm/Downloads/DxGxS.fits')
 file.keep_columns(['SGA_ID_1', 'GALAXY', 'RA_LEDA', 'DEC_LEDA',
                    'MORPHTYPE', 'PA_LEDA','D25_LEDA', 'BA_LEDA', 'Z_LEDA',
                    'SB_D25_LEDA', 'imagSE', 'rmagSE', 'gmagSE', 'FLUX_G', 'FLUX_R','FLUX_Z', 'FLUX_W1', 
-                   'FLUX_W2', 'FLUX_W3', 'FLUX_W4', 'NUVmag'])
+                   'FLUX_W2', 'FLUX_W3', 'FLUX_W4', 'NUVmag', 'gReff'])
 df = file.to_pandas()
 
+df['FLUC_W3'] = df['FLUX_W3']-(0.158*df['FLUX_W1'])
+df['FLUX_W4'] = df['FLUX_W4']-(0.059*df['FLUX_W1'])
 df = df[df.Z_LEDA > 0]
 df = df[df.FLUX_W1 > 0]
 df = df[df.FLUX_W2 > 0]
 df = df[df.FLUX_W3 > 0]
 df = df[df.FLUX_W4 > 0]
-print(df.BA_LEDA)
+df = df[df.gReff < 15]
+
 #%%
 # Cleaning the sample - getting rid of extremes
+mean_fw1 = df['FLUX_W1'].mean()
+std_fw1 = df['FLUX_W1'].std()
+mean_fw3 = df['FLUX_W3'].mean()
+std_fw3 = df['FLUX_W3'].std()
+mean_fw4 = df['FLUX_W4'].mean()
+std_fw4 = df['FLUX_W4'].std()
 
-# mean_fw3 = df['FLUX_W3'].mean()
-# std_fw3 = df['FLUX_W3'].std()
-# mean_fw4 = df['FLUX_W4'].mean()
-# std_fw4 = df['FLUX_W4'].std()
+fw1_cutoff = mean_fw1 + 2*std_fw1
+fw3_cutoff = mean_fw3 + 2*std_fw3
+fw4_cutoff = mean_fw4 + 2*std_fw4
 
-# fw3_cutoff = mean_fw3 + 2*std_fw3
-# fw4_cutoff = mean_fw4 + 2*std_fw4
-
-# df = df[df['FLUX_W3'] < fw3_cutoff]
-# df = df[df['FLUX_W4'] < fw4_cutoff]
+df = df[df['FLUX_W1'] < fw1_cutoff]
+df = df[df['FLUX_W3'] < fw3_cutoff]
+df = df[df['FLUX_W4'] < fw4_cutoff]
 #%%
 
 # Calculating luminosities, SFR and Stellar Mass
@@ -74,25 +80,25 @@ df['LUM_W4'] = LumCalc(mag4, 3.25)
 
 # Scaling W3 and W4 with the W1 light
 
-df['LUM_W3'] = df['LUM_W3']-(0.158*df['LUM_W1'])
-df['LUM_W4'] = df['LUM_W4']-(0.059*df['LUM_W1'])
-df = df[df.LUM_W3 > 0]
-df = df[df.LUM_W4 > 0]
+# df['LUM_W3'] = df['LUM_W3']-(0.158*df['LUM_W1'])
+# df['LUM_W4'] = df['LUM_W4']-(0.059*df['LUM_W1'])
+# df = df[df.LUM_W3 > 0]
+# df = df[df.LUM_W4 > 0]
 
 #df.to_csv('second_subdf_SGA.csv')
 # Using a Mass-to-Light ratio to get Stellar Mass
 
-stellar_mass = np.log10(df['LUM_W1'] * 0.35)
+df['stellar_mass'] = np.log10(df['LUM_W1'] * 0.35)
 
 # Plotting the mass distribution of this subsample
-hist, bins, patches = plt.hist(stellar_mass, bins=10, density=True)
+hist, bins, patches = plt.hist(df.stellar_mass, bins=10, density=True)
 
 def skewed_gaussian(x, a, mean, std, skew):
     
     return a * skewnorm.pdf(x, a=skew, loc=mean, scale=std)
 
-mean_guess = np.mean(stellar_mass)
-std_guess = np.std(stellar_mass)
+mean_guess = np.mean(df.stellar_mass)
+std_guess = np.std(df.stellar_mass)
 skew_guess = 0
 
 amp_guess = np.max(hist)
@@ -109,12 +115,12 @@ x_fit = np.linspace(min(bins), max(bins), 1000)
 y_fit = skewed_gaussian(x_fit, *popt)
 
 
-plt.hist(stellar_mass, bins=10)
+plt.hist(df.stellar_mass, bins=10)
 plt.plot(x_fit, y_fit, 'r-')
 
 plt.xlabel('log Stellar Mass ($M_{\odot}$)')
 plt.ylabel('Probability Density')
-plt.show()
+plt.clf()
 
 # Calculating the SFR based on the W3 and W4 bands
 def SFRCalcW3 (lum):
@@ -197,30 +203,31 @@ def SFRCalcUV (lum):
 df['sfrUV'] = SFRCalcUV(lum)
 #%%
 # Calculating SFR from GALEX NUV
+
 def curve_function(x, a, b, c):
     return a * x - b * x**2 + c * x**3
 
-x = stellar_mass
+x = df.stellar_mass
 y = np.log10(df.sfrUV)
 
-params, _ = curve_fit(curve_function, stellar_mass, np.log10(df.sfrUV))
+params, _ = curve_fit(curve_function, df.stellar_mass, np.log10(df.sfrUV))
 
 x_fit = np.linspace(5, 11.5, 100)
 y_fit = curve_function(x_fit, *params)
 
 y_dotted = curve_function(x_fit, params[0], params[1], params[2])
 
-plt.scatter(x, y, alpha=0.8, label='LSBs from the DES')
+plt.scatter(x, y, alpha=0.8, c=df.gReff, cmap='cool', label='LSBs from the DES')
 plt.plot(x_fit, y_fit, 'k', linewidth=2)
 plt.plot(x_fit, y_dotted+0.4, 'k-.', linewidth=1)
 plt.plot(x_fit, y_dotted-0.4, 'k-.', linewidth=1)
 plt.xlabel('log Stellar Mass ($M_{\odot}$)')
 plt.ylabel('log SFR from GALEX NUV ($M_{\odot} \; yr^{-1}$)')
-plt.xlim(7.8, 11)
+plt.xlim(7, 11)
 plt.ylim(-3, 1)
 
-# cbar = plt.colorbar()
-# cbar.set_label('Major axis diameter (arcmin)')
+cbar = plt.colorbar()
+cbar.set_label('g-band Effective Radius (kpc)')
 
 # Parameters from the XCOLDGASS SFMS
 a_xc = -4.460746
@@ -242,15 +249,15 @@ print("a:", params[0])
 print("b:", params[1])
 print("c:", params[2])
 
-residuals = np.log10(df.sfrUV) - (curve_function(stellar_mass, params[0], params[1], params[2]))
-plt.scatter(stellar_mass, residuals, alpha=0.8)
+residuals = np.log10(df.sfrUV) - (curve_function(df.stellar_mass, params[0], params[1], params[2]))
+plt.scatter(df.stellar_mass, residuals, c=df.gReff, cmap='cool', alpha=0.8)
 plt.xlim(7.8, 11)
 plt.axhline(y=0, color='k', linestyle='--')
 plt.xlabel('log Stellar Mass ($M_{\odot}$)')
 plt.ylabel('Residuals ($log\;M_{\odot}\;yr^{-1}$)')
 
-# cbar = plt.colorbar()
-# cbar.set_label('Major axis diameter (arcmin)')
+cbar = plt.colorbar()
+cbar.set_label('g-band Effective Radius (kpc)')
 
 plt.show()
 #%%
@@ -305,7 +312,7 @@ colour_gi = df.gmagSE - df.imagSE
 colour_nuvr = mag_nuv - df.rmagSE
 
 plt.scatter(colour_gi, colour_gr, c=np.log10(df.sfrUV), cmap='mako')
-plt.axvline(x=0.6, color='k', linestyle='--')
+plt.axvline(x=0.53, color='k', linestyle='--')
 plt.text(0.2, 0.9, 'Blue LSBs', c='blue')
 plt.text(0.7, 0.9, 'Red LSBs', c='r')
 plt.xlabel('g-i')
@@ -323,10 +330,11 @@ plt.show()
 df['colour_gr'] = colour_gr
 df['colour_gi'] = colour_gi
 df['colour_nuvr'] = colour_nuvr
+print(df.colour_gi.median())
 
 # Median g-i
-df_blue = df[df.colour_gi < 0.55]
-df_red = df[df.colour_gi >= 0.55]
+df_blue = df[df.colour_gi < 0.53]
+df_red = df[df.colour_gi >= 0.53]
 
 plt.hist(np.log10(df_blue.sfrUV), bins=5, color='blue', histtype='step', label='Blue LSBs')
 plt.hist(np.log10(df_red.sfrUV), bins=5, color='r', histtype='step', label='Red LSBs')
@@ -343,17 +351,21 @@ plt.show()
 def curve_function(x, a, b, c):
     return a * x - b * x**2 + c * x**3
 
-x = stellar_mass
+x = df.stellar_mass
 y = np.log10(df.sfrUV)
 
-params, _ = curve_fit(curve_function, stellar_mass, np.log10(df.sfrUV))
+params, _ = curve_fit(curve_function, df.stellar_mass, np.log10(df.sfrUV))
 
 x_fit = np.linspace(5, 11.5, 100)
 y_fit = curve_function(x_fit, *params)
 
 y_dotted = curve_function(x_fit, params[0], params[1], params[2])
 
-plt.scatter(x, y, alpha=0.8, c=df.colour_gi, cmap='coolwarm', label='LSBs from the DES')
+# plt.scatter(x, y, alpha=0.8, c=df.colour_gi, cmap='coolwarm', label='LSBs from the DES')
+plt.scatter(df_red.stellar_mass, np.log10(df_red.sfrUV), c='r', 
+            label='Red LSBs', alpha=0.5)
+plt.scatter(df_blue.stellar_mass, np.log10(df_blue.sfrUV), c='blue', 
+            label='Blue LSBs', alpha=0.5)
 plt.plot(x_fit, y_fit, 'k', linewidth=2)
 plt.plot(x_fit, y_dotted+0.4, 'k-.', linewidth=1)
 plt.plot(x_fit, y_dotted-0.4, 'k-.', linewidth=1)
@@ -362,18 +374,23 @@ plt.ylabel('log SFR from GALEX NUV ($M_{\odot} \; yr^{-1}$)')
 plt.xlim(7.8, 11)
 plt.ylim(-3, 1)
 
-cbar = plt.colorbar()
-cbar.set_label('g-i')
+# cbar = plt.colorbar()
+# cbar.set_label('g-i')
 
 # Parameters from the XCOLDGASS SFMS
 a_xc = -4.460746
 b_xc = -0.836844
 c_xc = -0.039050
 
+# Parameters from Saintonge, 2016
+# a_xc = -2.332
+# b_xc = -0.4156
+# c_xc = -0.01828
+
 x_new = np.linspace(5, 11.5, 100)
 y_new = curve_function(x_new, a_xc, b_xc, c_xc)
 
-plt.plot(x_new, y_new, 'r', linewidth=2, label='XCOLDGASS SFMS')
+plt.plot(x_new, y_new, 'pink', linewidth=2, label='XCOLDGASS SFMS')
 plt.plot(x_new, y_new+0.4, 'r-.', linewidth=1)
 plt.plot(x_new, y_new-0.4, 'r-.', linewidth=1)
 
@@ -385,8 +402,8 @@ print("a:", params[0])
 print("b:", params[1])
 print("c:", params[2])
 
-residuals = np.log10(df.sfrUV) - (curve_function(stellar_mass, params[0], params[1], params[2]))
-plt.scatter(stellar_mass, residuals, c=df.colour_gi, cmap='coolwarm', alpha=0.8)
+residuals = np.log10(df.sfrUV) - (curve_function(df.stellar_mass, params[0], params[1], params[2]))
+plt.scatter(df.stellar_mass, residuals, c=df.colour_gi, cmap='coolwarm', alpha=0.8)
 plt.axhline(y=0, color='k', linestyle='--')
 plt.xlabel('log Stellar Mass ($M_{\odot}$)')
 plt.ylabel('Residuals ($log\;M_{\odot}\;yr^{-1}$)')
