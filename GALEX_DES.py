@@ -217,7 +217,7 @@ y_fit = curve_function(x_fit, *params)
 
 y_dotted = curve_function(x_fit, params[0], params[1], params[2])
 
-plt.scatter(x, y, alpha=0.8, c=df.gReff, cmap='cool', label='LSBs from the DES')
+plt.scatter(x, y, alpha=0.8, c=np.log10(df.gReff), cmap='cool', label='LSBs from the DES')
 plt.plot(x_fit, y_fit, 'k', linewidth=2)
 plt.plot(x_fit, y_dotted+0.4, 'k-.', linewidth=1)
 plt.plot(x_fit, y_dotted-0.4, 'k-.', linewidth=1)
